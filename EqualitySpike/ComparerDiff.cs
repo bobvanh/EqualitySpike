@@ -17,46 +17,19 @@ namespace EqualitySpike
             IList<TIncoming> incoming,
             IComparer<TKey> comparer)
         {
-            var existingPerKey = existing.ToImmutableSortedDictionary(_ => _, _ => _, comparer);
-            var incomingPerKey = incoming.ToImmutableSortedDictionary(_ => _, _ => _, comparer);
+            var existingSet = new SortedSet<TExisting>(comparer);
+            var incomingSet = new SortedSet<TIncoming>(comparer);
 
-            var allKeys = existing.AsEnumerable<TKey>().Concat(incoming);
-            var sortedKeys = new SortedSet<TKey>(allKeys, comparer);
-
-            var diff = sortedKeys.Aggregate(
-                new
-                {
-                    ExistingOnly = new SortedSet<TExisting>(comparer),
-                    IncomingOnly = new SortedSet<TIncoming>(comparer),
-                    ExistingIntersection = new SortedSet<TExisting>(comparer),
-                    IncomingIntersection = new SortedSet<TIncoming>(comparer)
-                },
-                (acc, key) =>
-                {
-                    var inExisting = existingPerKey.ContainsKey(key);
-                    var inIncoming = incomingPerKey.ContainsKey(key);
-
-                    if (inExisting && !inIncoming)
-                    {
-                        acc.ExistingOnly.Add(existingPerKey[key]);
-                    }
-                    else if (inIncoming && !inExisting)
-                    {
-                        acc.IncomingOnly.Add(incomingPerKey[key]);
-                    }
-                    else
-                    {
-                        acc.ExistingIntersection.Add(existingPerKey[key]);
-                        acc.IncomingIntersection.Add(incomingPerKey[key]);
-                    }
-                    return acc;
-                });
+            var existingOnly = existingSet.ExceptBy(incoming.AsEnumerable<TKey>(), _ => _);
+            var incomingOnly = incomingSet.ExceptBy(existing.AsEnumerable<TKey>(), _ => _);
+            var existingIntersection = existingSet.IntersectBy(incoming.AsEnumerable<TKey>(), _ => _);
+            var incomingIntersection = incomingSet.IntersectBy(existing.AsEnumerable<TKey>(), _ => _);
 
             return new ComparerDiff<TExisting, TIncoming, TKey>(
-                diff.ExistingOnly.ToImmutableSortedSet<TExisting>(comparer),
-                diff.IncomingOnly.ToImmutableSortedSet<TIncoming>(comparer),
-                diff.ExistingIntersection.ToImmutableSortedSet<TExisting>(comparer),
-                diff.IncomingIntersection.ToImmutableSortedSet<TIncoming>(comparer));
+                existingOnly.ToImmutableSortedSet<TExisting>(comparer),
+                incomingOnly.ToImmutableSortedSet<TIncoming>(comparer),
+                existingIntersection.ToImmutableSortedSet<TExisting>(comparer),
+                incomingIntersection.ToImmutableSortedSet<TIncoming>(comparer));
         }
 
         private ComparerDiff(
