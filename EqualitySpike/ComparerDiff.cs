@@ -20,16 +20,20 @@ public class ComparerDiff<TExisting, TIncoming, TKey>
         var existingSet = new SortedSet<TExisting>(comparer);
         var incomingSet = new SortedSet<TIncoming>(comparer);
 
-        var existingOnly = existingSet.ExceptBy(incoming.AsEnumerable<TKey>(), _ => _);
-        var incomingOnly = incomingSet.ExceptBy(existing.AsEnumerable<TKey>(), _ => _);
-        var existingIntersection = existingSet.IntersectBy(incoming.AsEnumerable<TKey>(), _ => _);
-        var incomingIntersection = incomingSet.IntersectBy(existing.AsEnumerable<TKey>(), _ => _);
+        var existingOnly = existingSet.ExceptBy(incoming.AsEnumerable<TKey>(), _ => _)
+            .ToImmutableSortedSet<TExisting>(comparer);
+        var incomingOnly = incomingSet.ExceptBy(existing.AsEnumerable<TKey>(), _ => _)
+            .ToImmutableSortedSet<TIncoming>(comparer);
+        var existingIntersection = existingSet.IntersectBy(incoming.AsEnumerable<TKey>(), _ => _)
+            .ToImmutableSortedSet<TExisting>(comparer);
+        var incomingIntersection = incomingSet.IntersectBy(existing.AsEnumerable<TKey>(), _ => _)
+            .ToImmutableSortedSet<TIncoming>(comparer);
 
         return new ComparerDiff<TExisting, TIncoming, TKey>(
-            existingOnly.ToImmutableSortedSet<TExisting>(comparer),
-            incomingOnly.ToImmutableSortedSet<TIncoming>(comparer),
-            existingIntersection.ToImmutableSortedSet<TExisting>(comparer),
-            incomingIntersection.ToImmutableSortedSet<TIncoming>(comparer));
+            existingOnly,
+            incomingOnly,
+            existingIntersection,
+            incomingIntersection);
     }
 
     private ComparerDiff(
